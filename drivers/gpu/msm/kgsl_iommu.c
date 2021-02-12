@@ -777,21 +777,23 @@ static bool kgsl_iommu_suppress_pagefault(uint64_t faultaddr, int write,
 	return kgsl_iommu_uche_overfetch(private, faultaddr);
 }
 
-static struct kgsl_process_private *kgsl_iommu_identify_process(u64 ptbase)
+static struct kgsl_process_private *kgsl_iommu_get_process(u64 ptbase)
 {
 	struct kgsl_process_private *p = NULL;
 	struct kgsl_iommu_pt *iommu_pt;
 
-	spin_lock(&kgsl_driver.proclist_lock);
+	mutex_lock(&kgsl_driver.process_mutex);
 	list_for_each_entry(p, &kgsl_driver.process_list, list) {
 		iommu_pt = p->pagetable->priv;
 		if (iommu_pt->ttbr0 == ptbase) {
-			spin_unlock(&kgsl_driver.proclist_lock);
+			if (!kgsl_process_private_get(p))
+				p = NULL;
+			mutex_unlock(&kgsl_driver.process_mutex);
 			return p;
 		}
 	}
 
-	spin_unlock(&kgsl_driver.proclist_lock);
+	mutex_unlock(&kgsl_driver.process_mutex);
 	return p;
 }
 
@@ -840,15 +842,14 @@ static int kgsl_iommu_fault_handler(struct iommu_domain *domain,
 		fault_type = "transaction stalled";
 
 	ptbase = KGSL_IOMMU_GET_CTX_REG_Q(ctx, TTBR0);
-	private = kgsl_iommu_identify_process(ptbase);
+	private = kgsl_iommu_get_process(ptbase);
 
-	if (!kgsl_process_private_get(private))
-		private = NULL;
-	else
+	if (private)
 		pid = pid_nr(private->pid);
 
 	if (kgsl_iommu_suppress_pagefault(addr, write, private)) {
 		iommu->pagefault_suppression_count++;
+		kgsl_process_private_put(private);
 		return ret;
 	}
 
@@ -1211,7 +1212,7 @@ void _enable_gpuhtw_llc(struct kgsl_mmu *mmu, struct kgsl_iommu_pt *iommu_pt)
 	int ret;
 
 	/* GPU pagetable walk LLC slice not enabled */
-	if (IS_ERR(adreno_dev->gpuhtw_llc_slice))
+	if (IS_ERR_OR_NULL(adreno_dev->gpuhtw_llc_slice))
 		return;
 
 	/* Domain attribute to enable system cache for GPU pagetable walks */
