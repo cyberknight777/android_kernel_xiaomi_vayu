@@ -19,3 +19,4 @@
 #include "vayu-sm8150-pinctrl.dtsi"
 #include "vayu-sm8150-regulator.dtsi"
 #include "vayu-sm8150.dtsi"
+#include "../dtbo-overlay/vayu.dtsi"
