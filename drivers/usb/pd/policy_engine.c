@@ -361,8 +361,7 @@ static void *usbpd_ipc_log;
 #define PD_VBUS_MAX_VOLTAGE_LIMIT	9000000
 #define PD_MAX_CURRENT_LIMIT		4000000
 #define MAX_FIXED_PDO_MA		2000
-#define MAX_NON_COMPLIANT_PPS_UA
-		2000000
+#define MAX_NON_COMPLIANT_PPS_UA		2000000
 
 static bool check_vsafe0v = true;
 module_param(check_vsafe0v, bool, 0600);
