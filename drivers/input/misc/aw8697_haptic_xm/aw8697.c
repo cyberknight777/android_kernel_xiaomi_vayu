@@ -31,7 +31,6 @@
 #include <asm/uaccess.h>
 #include <linux/syscalls.h>
 #include <linux/power_supply.h>
-#include <linux/pm_qos.h>
 #include "aw8697_config.h"
 #include "aw8697_reg.h"
 #include "aw8697.h"
@@ -61,8 +60,6 @@
 #define AW8697_MAX_BST_VO 0x1f
 
 #define OSC_CALIBRATION_T_LENGTH 5100000
-#define PM_QOS_VALUE_VB 400
-struct pm_qos_request pm_qos_req_vb;
 /******************************************************
  *
  * variable
@@ -1315,7 +1312,6 @@ static int aw8697_haptic_rtp_init(struct aw8697 *aw8697)
 	unsigned int buf_len = 0;
 	unsigned int period_size = aw8697->ram.base_addr >> 2 ;
 	bool rtp_start = true;
-	pm_qos_add_request(&pm_qos_req_vb, PM_QOS_CPU_DMA_LATENCY, PM_QOS_VALUE_VB);
 	aw8697->rtp_cnt = 0;
 	while ((!aw8697_haptic_rtp_get_fifo_afi(aw8697)) &&
 	       (aw8697->play_mode == AW8697_HAPTIC_RTP_MODE) &&
@@ -1344,7 +1340,6 @@ static int aw8697_haptic_rtp_init(struct aw8697 *aw8697)
 			if (aw8697->rtp_cnt == aw8697_rtp->len) {
 				aw8697->rtp_cnt = 0;
 				aw8697_haptic_set_rtp_aei(aw8697, false);
-				pm_qos_remove_request(&pm_qos_req_vb);
 				return 0;
 			}
 		} else {
@@ -1354,7 +1349,6 @@ static int aw8697_haptic_rtp_init(struct aw8697 *aw8697)
 				pr_info("%s: custom rtp update complete\n", __func__);
 				aw8697->rtp_cnt = 0;
 				aw8697_haptic_set_rtp_aei(aw8697, false);
-				pm_qos_remove_request(&pm_qos_req_vb);
 				return 0;
 			}
 		}
@@ -1363,7 +1357,6 @@ static int aw8697_haptic_rtp_init(struct aw8697 *aw8697)
 		aw8697_haptic_set_rtp_aei(aw8697, true);
 	}
 	pr_info("%s: exit\n", __func__);
-	pm_qos_remove_request(&pm_qos_req_vb);
 	return 0;
 }
 
@@ -1577,7 +1570,6 @@ static int aw8697_rtp_osc_calibration(struct aw8697 *aw8697)
 	disable_irq(gpio_to_irq(aw8697->irq_gpio));
 	/* haptic start */
 	aw8697_haptic_start(aw8697);
-	pm_qos_add_request(&pm_qos_req_vb, PM_QOS_CPU_DMA_LATENCY, PM_QOS_VALUE_VB);
 	while (1) {
 		if (!aw8697_haptic_rtp_get_fifo_afi(aw8697)) {
 			mutex_lock(&aw8697->rtp_lock);
@@ -1610,7 +1602,6 @@ static int aw8697_rtp_osc_calibration(struct aw8697 *aw8697)
 			break;
 		}
 	}
-	pm_qos_remove_request(&pm_qos_req_vb);
 	enable_irq(gpio_to_irq(aw8697->irq_gpio));
 
 	aw8697->osc_cali_flag = 0;
