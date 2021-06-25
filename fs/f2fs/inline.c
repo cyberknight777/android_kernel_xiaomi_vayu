@@ -11,6 +11,7 @@
 
 #include "f2fs.h"
 #include "node.h"
+#include <notrace.h>
 
 bool f2fs_may_inline_data(struct inode *inode)
 {
@@ -212,7 +213,8 @@ out:
 
 	f2fs_put_page(page, 1);
 
-	f2fs_balance_fs(sbi, dn.node_changed);
+	if (!err)
+		f2fs_balance_fs(sbi, dn.node_changed);
 
 	return err;
 }

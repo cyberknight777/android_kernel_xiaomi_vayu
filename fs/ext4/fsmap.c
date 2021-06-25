@@ -23,7 +23,7 @@
 #include "mballoc.h"
 #include <linux/sort.h>
 #include <linux/list_sort.h>
-#include <trace/events/ext4.h>
+#include <notrace.h>
 
 /* Convert an ext4_fsmap to an fsmap. */
 void ext4_fsmap_from_internal(struct super_block *sb, struct fsmap *dest,
@@ -121,6 +121,9 @@ static int ext4_getfsmap_helper(struct super_block *sb,
 
 	/* Are we just counting mappings? */
 	if (info->gfi_head->fmh_count == 0) {
+		if (info->gfi_head->fmh_entries == UINT_MAX)
+			return EXT4_QUERY_RANGE_ABORT;
+
 		if (rec_fsblk > info->gfi_next_fsblk)
 			info->gfi_head->fmh_entries++;
 

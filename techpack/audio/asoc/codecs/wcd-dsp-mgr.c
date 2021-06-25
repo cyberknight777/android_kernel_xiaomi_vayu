@@ -384,7 +384,8 @@ static int wdsp_download_segments(struct wdsp_mgr_priv *wdsp,
 	struct wdsp_img_segment *seg = NULL;
 	enum wdsp_event_type pre, post;
 	long status;
-	int ret, retry_cnt = 0;
+	int ret;
+	int retry_cnt = 0;
 
 	ctl = WDSP_GET_COMPONENT(wdsp, WDSP_CMPNT_CONTROL);
 
@@ -416,12 +417,19 @@ static int wdsp_download_segments(struct wdsp_mgr_priv *wdsp,
 	/* Notify all components that image is about to be downloaded */
 	wdsp_broadcast_event_upseq(wdsp, pre, NULL);
 
+	#if 0
+	/* Go through the list of segments and download one by one */
+	#endif
 	/*
 	 * Go through the list of segments and download one by one.
 	 * For each segment that fails to dlownload retry for
 	 * WDSP_FW_LOAD_RETRY_COUNT times
 	 */
 	list_for_each_entry(seg, wdsp->seg_list, list) {
+		#if 0
+		ret = wdsp_load_each_segment(wdsp, seg);
+		if (ret)
+		#endif
 		retry_cnt = WDSP_FW_LOAD_RETRY_COUNT;
 		do {
 			ret = wdsp_load_each_segment(wdsp, seg);
@@ -447,6 +455,9 @@ done:
 
 dload_error:
 	wdsp_flush_segment_list(wdsp->seg_list);
+	#if 0
+	wdsp_broadcast_event_downseq(wdsp, WDSP_EVENT_DLOAD_FAILED, NULL);
+	#endif
 
 	/*
 	 * code sections are downloaded at driver load and during SSR.
@@ -513,6 +524,16 @@ static void wdsp_load_fw_image(struct work_struct *work)
 
 static int wdsp_enable_dsp(struct wdsp_mgr_priv *wdsp)
 {
+	#if 0
+	int ret;
+
+	/* Make sure wdsp is in good state */
+	if (!WDSP_STATUS_IS_SET(wdsp, WDSP_STATUS_CODE_DLOADED)) {
+		WDSP_ERR(wdsp, "WDSP in invalid state 0x%x", wdsp->status);
+		return -EINVAL;
+	}
+	#endif
+
 	int ret, retry_cnt = WDSP_FW_LOAD_RETRY_COUNT;
 
 	/*
@@ -1256,12 +1277,8 @@ static int wdsp_mgr_parse_dt_entries(struct wdsp_mgr_priv *wdsp)
 		return ret;
 	}
 
-#ifdef GOOGLE_HOTWORD
 	wdsp->img_fname  = "cpe_intl";
 	pr_info("%s: using global wdsp fw: %s.\n", __func__, wdsp->img_fname);
-#else
-	pr_info("%s: using non-global wdsp fw: %s.\n", __func__, wdsp->img_fname);
-#endif
 
 	ret = of_count_phandle_with_args(dev->of_node,
 					 "qcom,wdsp-components",

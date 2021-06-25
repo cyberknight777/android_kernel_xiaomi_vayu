@@ -67,7 +67,7 @@ static unsigned int counter_delta(struct kgsl_device *device,
 
 static struct devfreq_msm_adreno_tz_data adreno_tz_data = {
 	.bus = {
-		.max = 350,
+		.max = 1200,
 	},
 	.device_id = KGSL_DEVICE_3D0,
 };
@@ -1606,6 +1606,8 @@ static int adreno_init(struct kgsl_device *device)
 		}
 
 	}
+
+	device->pwrscale.devfreqptr->max_freq = 675000000;
 
 	place_marker("M - DRIVER ADRENO Ready");
 

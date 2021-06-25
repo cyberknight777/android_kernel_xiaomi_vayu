@@ -588,6 +588,20 @@ static int32_t afe_callback(struct apr_client_data *data, void *priv)
 					   data->payload_size))
 			return 0;
 
+		#if 0
+		if (data->opcode == AFE_PORT_CMDRSP_GET_PARAM_V3)
+			param_id_pos = 4;
+		else
+			param_id_pos = 3;
+
+		if (data->payload_size >= param_id_pos * sizeof(uint32_t))
+				param_id = payload[param_id_pos - 1];
+		else {
+			pr_err("%s: Error: size %d is less than expected\n",
+				__func__, data->payload_size);
+			return -EINVAL;
+		}
+		#endif
 		param_id = (data->opcode == AFE_PORT_CMDRSP_GET_PARAM_V3) ?
 					payload[3] :
 					payload[2];
@@ -649,6 +663,13 @@ static int32_t afe_callback(struct apr_client_data *data, void *priv)
 
 		payload = data->payload;
 		if (data->opcode == APR_BASIC_RSP_RESULT) {
+			#if 0
+			if (data->payload_size < (2 * sizeof(uint32_t))) {
+				pr_err("%s: Error: size %d is less than expected\n",
+					__func__, data->payload_size);
+				return -EINVAL;
+			}
+			#endif
 			pr_debug("%s:opcode = 0x%x cmd = 0x%x status = 0x%x token=%d\n",
 				__func__, data->opcode,
 				payload[0], payload[1], data->token);

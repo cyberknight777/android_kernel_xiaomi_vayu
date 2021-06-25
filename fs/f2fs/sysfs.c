@@ -15,7 +15,7 @@
 #include "f2fs.h"
 #include "segment.h"
 #include "gc.h"
-#include <trace/events/f2fs.h>
+#include <notrace.h>
 
 struct proc_dir_entry *f2fs_proc_root;
 
@@ -931,4 +931,5 @@ void f2fs_unregister_sysfs(struct f2fs_sb_info *sbi)
 	}
 	kobject_del(&sbi->s_kobj);
 	kobject_put(&sbi->s_kobj);
+	wait_for_completion(&sbi->s_kobj_unregister);
 }

@@ -637,6 +637,11 @@ static struct wcd_mbhc_config wcd_mbhc_cfg = {
 	.swap_gnd_mic = NULL,
 	.hs_ext_micbias = true,
 	.key_code[0] = KEY_MEDIA,
+	#if 0
+	.key_code[1] = KEY_VOICECOMMAND,
+	.key_code[2] = KEY_VOLUMEUP,
+	.key_code[3] = KEY_VOLUMEDOWN,
+	#endif
 	.key_code[1] = BTN_1,
 	.key_code[2] = BTN_2,
 	.key_code[3] = 0,
@@ -3958,6 +3963,10 @@ static bool msm_usbc_swap_gnd_mic(struct snd_soc_codec *codec, bool active)
 	struct msm_asoc_mach_data *pdata =
 				snd_soc_card_get_drvdata(card);
 
+	#if 0
+	if (!pdata->fsa_handle)
+		return false;
+	#endif
 	struct pinctrl_state *en2_pinctrl_active;
 	struct pinctrl_state *en2_pinctrl_sleep;
 	int value = 0;
@@ -3991,6 +4000,9 @@ static bool msm_usbc_swap_gnd_mic(struct snd_soc_codec *codec, bool active)
 			return false;
 		}
 
+	#if 0
+	return fsa4480_switch_event(pdata->fsa_handle, FSA_MIC_GND_SWAP);
+	#endif
 		en2_pinctrl_active = pinctrl_lookup_state(
 						pdata->usbc_en2_gpio_p, "aud_active");
 		if (IS_ERR_OR_NULL(en2_pinctrl_active)) {
@@ -4507,6 +4519,16 @@ static void *def_wcd_mbhc_cal(void)
 	btn_high = ((void *)&btn_cfg->_v_btn_low) +
 		(sizeof(btn_cfg->_v_btn_low[0]) * btn_cfg->num_btn);
 
+	#if 0
+	btn_high[0] = 75;
+	btn_high[1] = 150;
+	btn_high[2] = 237;
+	btn_high[3] = 500;
+	btn_high[4] = 500;
+	btn_high[5] = 500;
+	btn_high[6] = 500;
+	btn_high[7] = 500;
+	#endif
 	btn_high[0] = 75;
 	btn_high[1] = 260;
 	btn_high[2] = 750;
@@ -6027,7 +6049,38 @@ static struct snd_soc_dai_link msm_common_misc_fe_dai_links[] = {
 		.ignore_pmdown_time = 1,
 		.id = MSM_FRONTEND_DAI_MULTIMEDIA17,
 	},
-
+	#if 0
+	{
+		.name = "MultiMedia30 Playback",
+		.stream_name = "MultiMedia30",
+		.cpu_dai_name = "MultiMedia30",
+		.platform_name = "msm-pcm-dsp.1",
+		.dynamic = 1,
+		.dpcm_playback = 1,
+		.trigger = {SND_SOC_DPCM_TRIGGER_POST,
+			    SND_SOC_DPCM_TRIGGER_POST},
+		.codec_dai_name = "snd-soc-dummy-dai",
+		.codec_name = "snd-soc-dummy",
+		.ignore_suspend = 1,
+		.ignore_pmdown_time = 1,
+		.id = MSM_FRONTEND_DAI_MULTIMEDIA30,
+	},
+	{
+		.name = "MultiMedia31 Playback",
+		.stream_name = "MultiMedia31",
+		.cpu_dai_name = "MultiMedia31",
+		.platform_name = "msm-pcm-dsp.1",
+		.dynamic = 1,
+		.dpcm_playback = 1,
+		.trigger = {SND_SOC_DPCM_TRIGGER_POST,
+			    SND_SOC_DPCM_TRIGGER_POST},
+		.codec_dai_name = "snd-soc-dummy-dai",
+		.codec_name = "snd-soc-dummy",
+		.ignore_suspend = 1,
+		.ignore_pmdown_time = 1,
+		.id = MSM_FRONTEND_DAI_MULTIMEDIA31,
+	},
+	#endif
 	{
 		.name = "Quaternary MI2S_RX Hostless Playback",
 		.stream_name = "Quaternary MI2S_RX Hostless Playback",
@@ -6058,7 +6111,7 @@ static struct snd_soc_dai_link msm_common_misc_fe_dai_links[] = {
 		.codec_dai_name = "snd-soc-dummy-dai",
 		.codec_name = "snd-soc-dummy",
 	},
-		{
+	{
 		.name = "MultiMedia30 Playback",
 		.stream_name = "MultiMedia30",
 		.cpu_dai_name = "MultiMedia30",
@@ -6931,6 +6984,11 @@ static struct snd_soc_dai_link msm_mi2s_be_dai_links[] = {
 		.ignore_suspend = 1,
 	},
 	{
+		#if 0
+		.name = LPASS_BE_QUAT_MI2S_RX,
+		.stream_name = "Quaternary MI2S Playback",
+		.cpu_dai_name = "msm-dai-q6-mi2s.3",
+		#endif
 		.name = LPASS_BE_QUIN_MI2S_RX,
 		.stream_name = "Quinary MI2S Playback",
 		.cpu_dai_name = "msm-dai-q6-mi2s.4",
@@ -6939,6 +6997,9 @@ static struct snd_soc_dai_link msm_mi2s_be_dai_links[] = {
 		.codec_dai_name = "msm-stub-rx",
 		.no_pcm = 1,
 		.dpcm_playback = 1,
+		#if 0
+		.id = MSM_BACKEND_DAI_QUATERNARY_MI2S_RX,
+		#endif
 		.id = MSM_BACKEND_DAI_QUINARY_MI2S_RX,
 		.be_hw_params_fixup = msm_be_hw_params_fixup,
 		.ops = &msm_mi2s_be_ops,
@@ -6946,6 +7007,11 @@ static struct snd_soc_dai_link msm_mi2s_be_dai_links[] = {
 		.ignore_pmdown_time = 1,
 	},
 	{
+		#if 0
+		.name = LPASS_BE_QUAT_MI2S_TX,
+		.stream_name = "Quaternary MI2S Capture",
+		.cpu_dai_name = "msm-dai-q6-mi2s.3",
+		#endif
 		.name = LPASS_BE_QUIN_MI2S_TX,
 		.stream_name = "Quinary MI2S Capture",
 		.cpu_dai_name = "msm-dai-q6-mi2s.4",
@@ -6954,6 +7020,9 @@ static struct snd_soc_dai_link msm_mi2s_be_dai_links[] = {
 		.codec_dai_name = "msm-stub-tx",
 		.no_pcm = 1,
 		.dpcm_capture = 1,
+		#if 0
+		.id = MSM_BACKEND_DAI_QUATERNARY_MI2S_TX,
+		#endif
 		.id = MSM_BACKEND_DAI_QUINARY_MI2S_TX,
 		.be_hw_params_fixup = msm_be_hw_params_fixup,
 		.ops = &msm_mi2s_be_ops,
@@ -6964,14 +7033,26 @@ static struct snd_soc_dai_link msm_mi2s_be_dai_links[] = {
 
 static struct snd_soc_dai_link quat_mi2s_rx_tas256x_dai_links[] = {
 	{
+		#if 0
+		.name = LPASS_BE_QUIN_MI2S_RX,
+		.stream_name = "Quinary MI2S Playback",
+		.cpu_dai_name = "msm-dai-q6-mi2s.4",
+		#endif
 		.name = LPASS_BE_QUAT_MI2S_RX,
 		.stream_name = "Quaternary MI2S Playback",
 		.cpu_dai_name = "msm-dai-q6-mi2s.3",
 		.platform_name = "msm-pcm-routing",
-		.codec_name     = "tas256x.1-004c",
+		#if 0
+		.codec_name = "msm-stub-codec.1",
+		.codec_dai_name = "msm-stub-rx",
+		#endif
+		.codec_name = "tas256x.1-004c",
 		.codec_dai_name = "tas256x ASI1",
 		.no_pcm = 1,
 		.dpcm_playback = 1,
+		#if 0
+		.id = MSM_BACKEND_DAI_QUINARY_MI2S_RX,
+		#endif
 		.id = MSM_BACKEND_DAI_QUATERNARY_MI2S_RX,
 		.be_hw_params_fixup = msm_be_hw_params_fixup,
 		.ops = &msm_mi2s_be_ops,
@@ -6979,14 +7060,26 @@ static struct snd_soc_dai_link quat_mi2s_rx_tas256x_dai_links[] = {
 		.ignore_pmdown_time = 1,
 	},
 	{
+		#if 0
+		.name = LPASS_BE_QUIN_MI2S_TX,
+		.stream_name = "Quinary MI2S Capture",
+		.cpu_dai_name = "msm-dai-q6-mi2s.4",
+		#endif
 		.name = LPASS_BE_QUAT_MI2S_TX,
 		.stream_name = "Quaternary MI2S Capture",
 		.cpu_dai_name = "msm-dai-q6-mi2s.3",
 		.platform_name = "msm-pcm-routing",
-		.codec_name     = "tas256x.1-004c",
+		#if 0
+		.codec_name = "msm-stub-codec.1",
+		.codec_dai_name = "msm-stub-tx",
+		#endif
+		.codec_name = "tas256x.1-004c",
 		.codec_dai_name = "tas256x ASI1",
 		.no_pcm = 1,
 		.dpcm_capture = 1,
+		#if 0
+		.id = MSM_BACKEND_DAI_QUINARY_MI2S_TX,
+		#endif
 		.id = MSM_BACKEND_DAI_QUATERNARY_MI2S_TX,
 		.be_hw_params_fixup = msm_be_hw_params_fixup,
 		.ops = &msm_mi2s_be_ops,
@@ -7941,9 +8034,8 @@ static int msm_asoc_machine_probe(struct platform_device *pdev)
 		goto err;
 	}
 	ret = msm_init_wsa_dev(pdev, card);
-	if (ret) {
+	if (ret)
 		goto err;
-	}
 
 	ret = devm_snd_soc_register_card(&pdev->dev, card);
 	if (ret == -EPROBE_DEFER) {
@@ -8025,13 +8117,9 @@ static int msm_asoc_machine_probe(struct platform_device *pdev)
 
 	pdata->fsa_handle = of_parse_phandle(pdev->dev.of_node,
 					     "fsa4480-i2c-handle", 0);
-	if (!pdata->fsa_handle) {
+	if (!pdata->fsa_handle)
 		dev_dbg(&pdev->dev, "property %s not detected in node %s\n",
 			"fsa4480-i2c-handle", pdev->dev.of_node->full_name);
-	} else {
-		dev_dbg(&pdev->dev, "property %s is detected in node %s\n",
-			"fsa4480-i2c-handle", pdev->dev.of_node->full_name);
-	}
 
 	/* Parse pinctrl info from devicetree */
 	ret = msm_get_pinctrl(pdev);

@@ -31,6 +31,9 @@
 #include "adsp_err.h"
 #include <dsp/voice_mhi.h>
 
+#if 0
+#define TIMEOUT_MS 300
+#endif
 #define TIMEOUT_MS 1000
 
 

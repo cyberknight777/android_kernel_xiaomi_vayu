@@ -14,11 +14,14 @@
 #include <linux/pagevec.h>
 #include <linux/swap.h>
 
+#if defined(CONFIG_UFSTW) && defined(CONFIG_UFSFEATURE30)
+#include <linux/ufstw.h>
+#endif
+
 #include "f2fs.h"
 #include "node.h"
 #include "segment.h"
-#include "trace.h"
-#include <trace/events/f2fs.h>
+#include <notrace.h>
 
 static struct kmem_cache *ino_entry_slab;
 struct kmem_cache *f2fs_inode_entry_slab;
@@ -243,6 +246,8 @@ int f2fs_ra_meta_pages(struct f2fs_sb_info *sbi, block_t start, int nrpages,
 					blkno * NAT_ENTRY_PER_BLOCK);
 			break;
 		case META_SIT:
+			if (unlikely(blkno >= TOTAL_SEGS(sbi)))
+				goto out;
 			/* get sit block addr */
 			fio.new_blkaddr = current_sit_addr(sbi,
 					blkno * SIT_ENTRY_PER_BLOCK);
@@ -1047,8 +1052,12 @@ int f2fs_sync_dirty_inodes(struct f2fs_sb_info *sbi, enum inode_type type)
 				get_pages(sbi, is_dir ?
 				F2FS_DIRTY_DENTS : F2FS_DIRTY_DATA));
 retry:
-	if (unlikely(f2fs_cp_error(sbi)))
+	if (unlikely(f2fs_cp_error(sbi))) {
+		trace_f2fs_sync_dirty_inodes_exit(sbi->sb, is_dir,
+				get_pages(sbi, is_dir ?
+				F2FS_DIRTY_DENTS : F2FS_DIRTY_DATA));
 		return -EIO;
+	}
 
 	spin_lock(&sbi->inode_lock[type]);
 
@@ -1565,6 +1574,10 @@ int f2fs_write_checkpoint(struct f2fs_sb_info *sbi, struct cp_control *cpc)
 	if (cpc->reason != CP_RESIZE)
 		mutex_lock(&sbi->cp_mutex);
 
+#if defined(CONFIG_UFSTW) && defined(CONFIG_UFSFEATURE30)
+	bdev_set_turbo_write(sbi->sb->s_bdev);
+#endif
+
 	if (!is_sbi_flag_set(sbi, SBI_IS_DIRTY) &&
 		((cpc->reason & CP_FASTBOOT) || (cpc->reason & CP_SYNC) ||
 		((cpc->reason & CP_DISCARD) && !sbi->discard_blks)))
@@ -1638,6 +1651,9 @@ stop:
 	f2fs_update_time(sbi, CP_TIME);
 	trace_f2fs_write_checkpoint(sbi->sb, cpc->reason, "finish checkpoint");
 out:
+#if defined(CONFIG_UFSTW) && defined(CONFIG_UFSFEATURE30)
+	bdev_clear_turbo_write(sbi->sb->s_bdev);
+#endif
 	if (cpc->reason != CP_RESIZE)
 		mutex_unlock(&sbi->cp_mutex);
 	return err;

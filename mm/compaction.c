@@ -761,13 +761,15 @@ isolate_migratepages_block(struct compact_control *cc, unsigned long low_pfn,
 
 		/*
 		 * Periodically drop the lock (if held) regardless of its
-		 * contention, to give chance to IRQs. Abort async compaction
-		 * if contended.
+		 * contention, to give chance to IRQs. Abort completely if
+		 * a fatal signal is pending.
 		 */
 		if (!(low_pfn % SWAP_CLUSTER_MAX)
 		    && compact_unlock_should_abort(zone_lru_lock(zone), flags,
-								&locked, cc))
-			break;
+								&locked, cc)) {
+			low_pfn = 0;
+			goto fatal_pending;
+		}
 
 		if (!pfn_valid_within(low_pfn))
 			goto isolate_fail;
@@ -960,6 +962,7 @@ isolate_fail:
 	trace_mm_compaction_isolate_migratepages(start_pfn, low_pfn,
 						nr_scanned, nr_isolated);
 
+fatal_pending:
 	cc->total_migrate_scanned += nr_scanned;
 	if (nr_isolated)
 		count_compact_events(COMPACTISOLATED, nr_isolated);
@@ -1382,7 +1385,7 @@ static enum compact_result __compact_finished(struct zone *zone,
 		 * other migratetype buddy lists.
 		 */
 		if (find_suitable_fallback(area, order, migratetype,
-						true, &can_steal) != -1) {
+						true, &can_steal, cc->order) != -1) {
 
 			/* movable pages are OK in any pageblock */
 			if (migratetype == MIGRATE_MOVABLE)
@@ -1745,7 +1748,7 @@ static enum compact_result compact_zone_order(struct zone *zone, int order,
 	return ret;
 }
 
-int sysctl_extfrag_threshold = 500;
+int sysctl_extfrag_threshold = 750;
 
 /**
  * try_to_compact_pages - Direct compact to satisfy a high-order allocation
@@ -2088,7 +2091,8 @@ int kcompactd_run(int nid)
 	if (pgdat->kcompactd)
 		return 0;
 
-	pgdat->kcompactd = kthread_run(kcompactd, pgdat, "kcompactd%d", nid);
+	pgdat->kcompactd = kthread_run_perf_critical(cpu_perf_mask, kcompactd,
+					pgdat, "kcompactd%d", nid);
 	if (IS_ERR(pgdat->kcompactd)) {
 		pr_err("Failed to start kcompactd on node %d\n", nid);
 		ret = PTR_ERR(pgdat->kcompactd);

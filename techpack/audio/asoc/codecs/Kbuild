@@ -181,10 +181,6 @@ CDEFINES +=	-DANI_LITTLE_BYTE_ENDIAN \
 		-Wall\
 		-D__linux__
 
-ifeq ($(PRODUCT_BUILD_INTERNATIONAL),true)
-CDEFINES += -DGOOGLE_HOTWORD
-endif
-
 KBUILD_CPPFLAGS += $(CDEFINES)
 
 # Currently, for versions of gcc which support it, the kernel Makefile
@@ -205,8 +201,6 @@ ifeq ($(KERNEL_BUILD), 0)
 KBUILD_EXTRA_SYMBOLS +=$(OUT)/obj/vendor/qcom/opensource/audio-kernel/dsp/Module.symvers
 KBUILD_EXTRA_SYMBOLS +=$(OUT)/obj/vendor/qcom/opensource/audio-kernel/soc/Module.symvers
 endif
-
-CDEFINES += -DCONFIG_SND_SOC_HEADSET_2700MV
 
 ifeq ($(KERNEL_BUILD), 1)
 	obj-y	+= bolero/

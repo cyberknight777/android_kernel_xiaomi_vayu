@@ -833,7 +833,10 @@ EXPORT_SYMBOL(release_pages);
  */
 void __pagevec_release(struct pagevec *pvec)
 {
-	lru_add_drain();
+	if (!pvec->drained) {
+		lru_add_drain();
+		pvec->drained = true;
+	}
 	release_pages(pvec->pages, pagevec_count(pvec), pvec->cold);
 	pagevec_reinit(pvec);
 }
@@ -1016,7 +1019,7 @@ void __init swap_setup(void)
 	if (megs < 16)
 		page_cluster = 2;
 	else
-		page_cluster = 3;
+		page_cluster = 0;
 	/*
 	 * Right now other parts of the system means that we
 	 * _really_ don't want to cluster much more

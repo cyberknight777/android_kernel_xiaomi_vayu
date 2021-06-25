@@ -98,6 +98,9 @@
 #if defined(CONFIG_SYSCTL)
 
 /* External variables not in a header file. */
+#ifdef CONFIG_USB
+extern int deny_new_usb;
+#endif
 extern int suid_dumpable;
 #ifdef CONFIG_COREDUMP
 extern int core_uses_pid;
@@ -134,6 +137,9 @@ static int one_hundred = 100;
 static int one_thousand = 1000;
 #ifdef CONFIG_SCHED_WALT
 static int two_million = 2000000;
+#endif
+#ifdef CONFIG_INCREASE_MAXIMUM_SWAPPINESS
+static int max_swappiness = 200;
 #endif
 #ifdef CONFIG_PRINTK
 static int ten_thousand = 10000;
@@ -1015,6 +1021,17 @@ static struct ctl_table kern_table[] = {
 		.extra2		= &two,
 	},
 #endif
+#ifdef CONFIG_USB
+	{
+		.procname	= "deny_new_usb",
+		.data		= &deny_new_usb,
+		.maxlen		= sizeof(int),
+		.mode		= 0644,
+		.proc_handler	= proc_dointvec_minmax_sysadmin,
+		.extra1		= &zero,
+		.extra2		= &one,
+	},
+#endif
 	{
 		.procname	= "ngroups_max",
 		.data		= &ngroups_max,
@@ -1417,6 +1434,7 @@ static struct ctl_table vm_table[] = {
 		.extra1		= &zero,
 		.extra2		= &two,
 	},
+#if !defined(CONFIG_DISABLE_OOM_KILLER)
 	{
 		.procname	= "panic_on_oom",
 		.data		= &sysctl_panic_on_oom,
@@ -1447,6 +1465,7 @@ static struct ctl_table vm_table[] = {
 		.mode           = 0644,
 		.proc_handler   = proc_dointvec,
 	},
+#endif
 	{
 		.procname	= "overcommit_ratio",
 		.data		= &sysctl_overcommit_ratio,
@@ -1532,13 +1551,24 @@ static struct ctl_table vm_table[] = {
 		.proc_handler   = pdflush_proc_obsolete,
 	},
 	{
-		.procname	= "swappiness",
+		.procname	= "rswappiness",
 		.data		= &vm_swappiness,
 		.maxlen		= sizeof(vm_swappiness),
 		.mode		= 0644,
 		.proc_handler	= proc_dointvec_minmax,
 		.extra1		= &zero,
+#ifdef CONFIG_INCREASE_MAXIMUM_SWAPPINESS
+		.extra2         = &max_swappiness,
+#else
 		.extra2		= &one_hundred,
+#endif
+	},
+	{
+		.procname	= "swappiness",
+		.data		= &vm_swappiness,
+		.maxlen		= sizeof(vm_swappiness),
+		.mode		= 0444,
+		.proc_handler	= proc_dointvec,
 	},
 	{
 		.procname       = "want_old_faultaround_pte",

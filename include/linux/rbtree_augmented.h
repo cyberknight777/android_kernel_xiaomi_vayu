@@ -41,10 +41,9 @@ struct rb_augment_callbacks {
 	void (*rotate)(struct rb_node *old, struct rb_node *new);
 };
 
-extern void __rb_insert_augmented(struct rb_node *node,
-				  struct rb_root *root,
-				  bool newleft, struct rb_node **leftmost,
+extern void __rb_insert_augmented(struct rb_node *node, struct rb_root *root,
 	void (*augment_rotate)(struct rb_node *old, struct rb_node *new));
+
 /*
  * Fixup the rbtree and update the augmented information when rebalancing.
  *
@@ -59,7 +58,7 @@ static inline void
 rb_insert_augmented(struct rb_node *node, struct rb_root *root,
 		    const struct rb_augment_callbacks *augment)
 {
-	__rb_insert_augmented(node, root, false, NULL, augment->rotate);
+	__rb_insert_augmented(node, root, augment->rotate);
 }
 
 static inline void
@@ -67,8 +66,9 @@ rb_insert_augmented_cached(struct rb_node *node,
 			   struct rb_root_cached *root, bool newleft,
 			   const struct rb_augment_callbacks *augment)
 {
-	__rb_insert_augmented(node, &root->rb_root,
-			      newleft, &root->rb_leftmost, augment->rotate);
+	if (newleft)
+		root->rb_leftmost = node;
+	rb_insert_augmented(node, &root->rb_root, augment);
 }
 
 #define RB_DECLARE_CALLBACKS(rbstatic, rbname, rbstruct, rbfield,	\
@@ -105,6 +105,40 @@ rbstatic const struct rb_augment_callbacks rbname = {			\
 	.copy = rbname ## _copy,					\
 	.rotate = rbname ## _rotate					\
 };
+
+/*
+ * Template for declaring augmented rbtree callbacks,
+ * computing RBAUGMENTED scalar as max(RBCOMPUTE(node)) for all subtree nodes.
+ *
+ * RBSTATIC:    'static' or empty
+ * RBNAME:      name of the rb_augment_callbacks structure
+ * RBSTRUCT:    struct type of the tree nodes
+ * RBFIELD:     name of struct rb_node field within RBSTRUCT
+ * RBTYPE:      type of the RBAUGMENTED field
+ * RBAUGMENTED: name of RBTYPE field within RBSTRUCT holding data for subtree
+ * RBCOMPUTE:   name of function that returns the per-node RBTYPE scalar
+ */
+
+#define RB_DECLARE_CALLBACKS_MAX(RBSTATIC, RBNAME, RBSTRUCT, RBFIELD,	      \
+				 RBTYPE, RBAUGMENTED, RBCOMPUTE)	      \
+static inline RBTYPE RBNAME ## _compute_max(RBSTRUCT *node)		      \
+{									      \
+	RBSTRUCT *child;						      \
+	RBTYPE max = RBCOMPUTE(node);					      \
+	if (node->RBFIELD.rb_left) {					      \
+		child = rb_entry(node->RBFIELD.rb_left, RBSTRUCT, RBFIELD);   \
+		if (child->RBAUGMENTED > max)				      \
+			max = child->RBAUGMENTED;			      \
+	}								      \
+	if (node->RBFIELD.rb_right) {					      \
+		child = rb_entry(node->RBFIELD.rb_right, RBSTRUCT, RBFIELD);  \
+		if (child->RBAUGMENTED > max)				      \
+			max = child->RBAUGMENTED;			      \
+	}								      \
+	return max;							      \
+}									      \
+RB_DECLARE_CALLBACKS(RBSTATIC, RBNAME, RBSTRUCT, RBFIELD,		      \
+		     RBTYPE, RBAUGMENTED, RBNAME ## _compute_max)
 
 
 #define	RB_RED		0
@@ -161,16 +195,12 @@ extern void __rb_erase_color(struct rb_node *parent, struct rb_root *root,
 
 static __always_inline struct rb_node *
 __rb_erase_augmented(struct rb_node *node, struct rb_root *root,
-		     struct rb_node **leftmost,
 		     const struct rb_augment_callbacks *augment)
 {
 	struct rb_node *child = node->rb_right;
 	struct rb_node *tmp = node->rb_left;
 	struct rb_node *parent, *rebalance;
 	unsigned long pc;
-
-	if (leftmost && node == *leftmost)
-		*leftmost = rb_next(node);
 
 	if (!tmp) {
 		/*
@@ -271,8 +301,7 @@ static __always_inline void
 rb_erase_augmented(struct rb_node *node, struct rb_root *root,
 		   const struct rb_augment_callbacks *augment)
 {
-	struct rb_node *rebalance = __rb_erase_augmented(node, root,
-							 NULL, augment);
+	struct rb_node *rebalance = __rb_erase_augmented(node, root, augment);
 	if (rebalance)
 		__rb_erase_color(rebalance, root, augment->rotate);
 }
@@ -281,11 +310,9 @@ static __always_inline void
 rb_erase_augmented_cached(struct rb_node *node, struct rb_root_cached *root,
 			  const struct rb_augment_callbacks *augment)
 {
-	struct rb_node *rebalance = __rb_erase_augmented(node, &root->rb_root,
-							 &root->rb_leftmost,
-							 augment);
-	if (rebalance)
-		__rb_erase_color(rebalance, &root->rb_root, augment->rotate);
+	if (root->rb_leftmost == node)
+		root->rb_leftmost = rb_next(node);
+	rb_erase_augmented(node, &root->rb_root, augment);
 }
 
 #endif	/* _LINUX_RBTREE_AUGMENTED_H */

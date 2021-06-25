@@ -2068,6 +2068,7 @@ static int swrm_probe(struct platform_device *pdev)
 				   (void *) "swrm_reg_dump",
 				   &swrm_debug_ops);
 	}
+
 	/* Make inband tx interrupts as wakeup capable for slave irq */
 	if (swrm->master_id == MASTER_ID_TX)
 		irq_set_irq_wake(swrm->irq, 1);
